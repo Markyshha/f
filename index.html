@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Panorama VR</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    touch-action: none;
+}
+
+/* =========================
+   ГЛАВНЫЙ ЭКРАН
+========================= */
+
+#startScreen {
+    position: fixed;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #202020 0%,
+            #080808 55%,
+            #000 100%
+        );
+
+    z-index: 100;
+}
+
+.startBox {
+    width: min(520px, calc(100% - 32px));
+
+    padding: 32px;
+
+    border-radius: 20px;
+
+    background: rgba(25, 25, 25, .92);
+    border: 1px solid rgba(255,255,255,.12);
+
+    text-align: center;
+
+    box-shadow:
+        0 20px 80px rgba(0,0,0,.6);
+}
+
+.logo {
+    font-size: 42px;
+    margin-bottom: 8px;
+}
+
+.startBox h1 {
+    margin: 0 0 10px;
+    font-size: 27px;
+}
+
+.startBox p {
+    margin: 0 0 24px;
+
+    color: #aaa;
+
+    line-height: 1.5;
+}
+
+#fileInput {
+    display: none;
+}
+
+.chooseButton {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 52px;
+
+    padding: 0 25px;
+
+    border-radius: 13px;
+
+    background: white;
+    color: black;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition:
+        transform .15s,
+        opacity .15s;
+}
+
+.chooseButton:hover {
+    opacity: .9;
+}
+
+.chooseButton:active {
+    transform: scale(.96);
+}
+
+.note {
+    margin-top: 16px;
+
+    color: #777;
+
+    font-size: 12px;
+}
+
+
+/* =========================
+   VIEWER
+========================= */
+
+#viewer {
+    position: fixed;
+    inset: 0;
+
+    background: #000;
+
+    display: none;
+}
+
+canvas {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+}
+
+
+/* =========================
+   UI
+========================= */
+
+#ui {
+    position: fixed;
+    inset: 0;
+
+    pointer-events: none;
+
+    display: none;
+}
+
+.top {
+    position: absolute;
+
+    left: 15px;
+    right: 15px;
+    top: 15px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.filename {
+    max-width: 60%;
+
+    padding: 10px 14px;
+
+    border-radius: 12px;
+
+    background: rgba(0,0,0,.55);
+
+    backdrop-filter: blur(12px);
+
+    font-size: 14px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.buttons {
+    display: flex;
+    gap: 7px;
+
+    pointer-events: auto;
+}
+
+button {
+    width: 44px;
+    height: 44px;
+
+    border: 1px solid rgba(255,255,255,.15);
+
+    border-radius: 12px;
+
+    background: rgba(0,0,0,.55);
+
+    backdrop-filter: blur(12px);
+
+    color: white;
+
+    font-size: 19px;
+
+    cursor: pointer;
+}
+
+button:hover {
+    background: rgba(255,255,255,.15);
+}
+
+button:active {
+    transform: scale(.94);
+}
+
+
+/* =========================
+   НИЖНЯЯ ПАНЕЛЬ
+========================= */
+
+.bottom {
+    position: absolute;
+
+    left: 50%;
+    bottom: 18px;
+
+    transform: translateX(-50%);
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 8px;
+
+    border-radius: 15px;
+
+    background: rgba(0,0,0,.55);
+
+    backdrop-filter: blur(12px);
+
+    pointer-events: auto;
+}
+
+.counter {
+    min-width: 65px;
+
+    text-align: center;
+
+    font-size: 13px;
+
+    color: #ddd;
+}
+
+
+/* =========================
+   ПОДСКАЗКА
+========================= */
+
+#hint {
+    position: fixed;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    padding: 18px 25px;
+
+    border-radius: 14px;
+
+    background: rgba(0,0,0,.7);
+
+    backdrop-filter: blur(12px);
+
+    text-align: center;
+
+    line-height: 1.5;
+
+    pointer-events: none;
+
+    opacity: 0;
+
+    transition: opacity .3s;
+
+    z-index: 20;
+}
+
+#hint.show {
+    opacity: 1;
+}
+
+
+/* =========================
+   МОБИЛЬНЫЕ
+========================= */
+
+@media (max-width: 600px) {
+
+    .startBox {
+        padding: 25px 20px;
+    }
+
+    .logo {
+        font-size: 35px;
+    }
+
+    .startBox h1 {
+        font-size: 23px;
+    }
+
+    .top {
+        top: 9px;
+        left: 9px;
+        right: 9px;
+    }
+
+    button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .bottom {
+        bottom: 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+
+<!-- =========================
+     ЭКРАН ВЫБОРА ФОТО
+========================= -->
+
+<div id="startScreen">
+
+    <div class="startBox">
+
+        <div class="logo">
+            🌐
+        </div>
+
+        <h1>
+            Panorama VR
+        </h1>
+
+        <p>
+            Выбери одну или несколько 360° панорам
+            прямо с устройства.
+        </p>
+
+        <label
+            class="chooseButton"
+            for="fileInput"
+        >
+            Выбрать панорамы
+        </label>
+
+        <input
+            id="fileInput"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+        >
+
+        <div class="note">
+            Фотографии остаются на твоём устройстве
+            и не загружаются на сайт.
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     360 VIEWER
+========================= -->
+
+<div id="viewer"></div>
+
+
+<!-- =========================
+     UI VIEWER
+========================= -->
+
+<div id="ui">
+
+    <div class="top">
+
+        <div
+            class="filename"
+            id="filename"
+        >
+            Panorama
+        </div>
+
+        <div class="buttons">
+
+            <button
+                id="changeFiles"
+                title="Выбрать другие панорамы"
+            >
+                📂
+            </button>
+
+            <button
+                id="fullscreen"
+                title="Полный экран"
+            >
+                ⛶
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="bottom">
+
+        <button id="previous">
+            ←
+        </button>
+
+        <div
+            class="counter"
+            id="counter"
+        >
+            1 / 1
+        </div>
+
+        <button id="next">
+            →
+        </button>
+
+    </div>
+
+</div>
+
+
+<div id="hint">
+    🖱️ Зажми и двигай мышью<br>
+    📱 На телефоне двигай пальцем<br>
+    🔍 Колесо / два пальца — масштаб
+</div>
+
+
+<script type="module">
+
+/*
+==============================================================
+THREE.JS
+==============================================================
+*/
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+
+/*
+==============================================================
+ЭЛЕМЕНТЫ
+==============================================================
+*/
+
+const startScreen =
+    document.getElementById("startScreen");
+
+const viewer =
+    document.getElementById("viewer");
+
+const ui =
+    document.getElementById("ui");
+
+const fileInput =
+    document.getElementById("fileInput");
+
+const filename =
+    document.getElementById("filename");
+
+const counter =
+    document.getElementById("counter");
+
+const hint =
+    document.getElementById("hint");
+
+
+/*
+==============================================================
+ПАНОРАМЫ
+==============================================================
+*/
+
+let panoramas = [];
+
+let currentIndex = 0;
+
+
+/*
+==============================================================
+THREE.JS
+==============================================================
+*/
+
+const scene =
+    new THREE.Scene();
+
+
+const camera =
+    new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth /
+        window.innerHeight,
+        0.1,
+        1000
+    );
+
+
+/*
+ * Камера находится внутри сферы.
+ */
+
+camera.position.set(
+    0,
+    0,
+    0
+);
+
+
+const renderer =
+    new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance"
+    });
+
+
+renderer.setPixelRatio(
+    Math.min(
+        window.devicePixelRatio,
+        2
+    )
+);
+
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+
+viewer.appendChild(
+    renderer.domElement
+);
+
+
+/*
+==============================================================
+СФЕРА
+==============================================================
+*/
+
+/*
+ * Панорама 360° обычно хранится
+ * в формате equirectangular 2:1.
+ *
+ * Натягиваем её на сферу.
+ */
+
+const geometry =
+    new THREE.SphereGeometry(
+        100,
+        128,
+        64
+    );
+
+
+/*
+ * Переворачиваем сферу внутрь.
+ */
+
+geometry.scale(
+    -1,
+    1,
+    1
+);
+
+
+const material =
+    new THREE.MeshBasicMaterial({
+        color: 0xffffff
+    });
+
+
+const sphere =
+    new THREE.Mesh(
+        geometry,
+        material
+    );
+
+
+scene.add(
+    sphere
+);
+
+
+/*
+==============================================================
+СОСТОЯНИЕ КАМЕРЫ
+==============================================================
+*/
+
+let longitude = 0;
+let latitude = 0;
+
+let targetLongitude = 0;
+let targetLatitude = 0;
+
+let fov = 75;
+
+let dragging = false;
+
+let lastX = 0;
+let lastY = 0;
+
+let pinchDistance = null;
+
+
+/*
+==============================================================
+ЗАГРУЗКА ПАНОРАМЫ
+==============================================================
+*/
+
+const textureLoader =
+    new THREE.TextureLoader();
+
+
+async function showPanorama(index) {
+
+    if (!panoramas.length)
+        return;
+
+
+    currentIndex =
+        (index + panoramas.length) %
+        panoramas.length;
+
+
+    const panorama =
+        panoramas[currentIndex];
+
+
+    const texture =
+        await loadTexture(
+            panorama.url
+        );
+
+
+    if (material.map) {
+
+        material.map.dispose();
+
+    }
+
+
+    material.map =
+        texture;
+
+    material.needsUpdate =
+        true;
+
+
+    filename.textContent =
+        panorama.name;
+
+
+    counter.textContent =
+        `${currentIndex + 1} / ${panoramas.length}`;
+
+
+    /*
+     * Начинаем новую панораму
+     * с центра.
+     */
+
+    targetLongitude = 0;
+    targetLatitude = 0;
+
+}
+
+
+function loadTexture(url) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            textureLoader.load(
+
+                url,
+
+                texture => {
+
+                    texture.colorSpace =
+                        THREE.SRGBColorSpace;
+
+                    texture.minFilter =
+                        THREE.LinearFilter;
+
+                    texture.magFilter =
+                        THREE.LinearFilter;
+
+                    resolve(texture);
+
+                },
+
+                undefined,
+
+                reject
+
+            );
+
+        }
+    );
+
+}
+
+
+/*
+==============================================================
+ВЫБОР ФАЙЛОВ
+==============================================================
+*/
+
+fileInput.addEventListener(
+    "change",
+    () => {
+
+        const files =
+            Array.from(
+                fileInput.files
+            );
+
+
+        if (!files.length)
+            return;
+
+
+        /*
+         * Создаём локальные object URL.
+         *
+         * Файл никуда не отправляется.
+         */
+
+        panoramas =
+            files
+                .filter(file =>
+                    file.type.startsWith(
+                        "image/"
+                    )
+                )
+                .map(file => ({
+
+                    name: file.name,
+
+                    url:
+                        URL.createObjectURL(
+                            file
+                        )
+
+                }));
+
+
+        if (!panoramas.length)
+            return;
+
+
+        currentIndex = 0;
+
+
+        startScreen.style.display =
+            "none";
+
+        viewer.style.display =
+            "block";
+
+        ui.style.display =
+            "block";
+
+
+        showPanorama(0);
+
+        showHint();
+
+    }
+);
+
+
+/*
+==============================================================
+ПОДСКАЗКА
+==============================================================
+*/
+
+function showHint() {
+
+    hint.classList.add(
+        "show"
+    );
+
+
+    setTimeout(
+        () => {
+
+            hint.classList.remove(
+                "show"
+            );
+
+        },
+        3500
+    );
+
+}
+
+
+/*
+==============================================================
+ПЕРЕКЛЮЧЕНИЕ
+==============================================================
+*/
+
+document
+    .getElementById("next")
+    .onclick =
+        () => {
+
+            showPanorama(
+                currentIndex + 1
+            );
+
+        };
+
+
+document
+    .getElementById("previous")
+    .onclick =
+        () => {
+
+            showPanorama(
+                currentIndex - 1
+            );
+
+        };
+
+
+/*
+==============================================================
+ВЫБРАТЬ ДРУГИЕ
+==============================================================
+*/
+
+document
+    .getElementById("changeFiles")
+    .onclick =
+        () => {
+
+            fileInput.click();
+
+        };
+
+
+/*
+==============================================================
+FULLSCREEN
+==============================================================
+*/
+
+document
+    .getElementById("fullscreen")
+    .onclick =
+        async () => {
+
+            try {
+
+                if (
+                    !document.fullscreenElement
+                ) {
+
+                    await document
+                        .documentElement
+                        .requestFullscreen();
+
+                } else {
+
+                    await document
+                        .exitFullscreen();
+
+                }
+
+            } catch {}
+
+        };
+
+
+/*
+==============================================================
+МЫШЬ
+==============================================================
+*/
+
+renderer.domElement.addEventListener(
+    "pointerdown",
+    event => {
+
+        dragging = true;
+
+        lastX =
+            event.clientX;
+
+        lastY =
+            event.clientY;
+
+
+        renderer.domElement
+            .setPointerCapture(
+                event.pointerId
+            );
+
+    }
+);
+
+
+renderer.domElement.addEventListener(
+    "pointermove",
+    event => {
+
+        if (!dragging)
+            return;
+
+
+        const dx =
+            event.clientX -
+            lastX;
+
+
+        const dy =
+            event.clientY -
+            lastY;
+
+
+        lastX =
+            event.clientX;
+
+        lastY =
+            event.clientY;
+
+
+        targetLongitude -=
+            dx * 0.12;
+
+
+        targetLatitude -=
+            dy * 0.12;
+
+
+        targetLatitude =
+            Math.max(
+                -89,
+                Math.min(
+                    89,
+                    targetLatitude
+                )
+            );
+
+    }
+);
+
+
+renderer.domElement.addEventListener(
+    "pointerup",
+    () => {
+
+        dragging = false;
+
+    }
+);
+
+
+renderer.domElement.addEventListener(
+    "pointercancel",
+    () => {
+
+        dragging = false;
+
+    }
+);
+
+
+/*
+==============================================================
+ZOOM МЫШЬЮ
+==============================================================
+*/
+
+renderer.domElement.addEventListener(
+    "wheel",
+    event => {
+
+        event.preventDefault();
+
+
+        fov +=
+            event.deltaY * 0.04;
+
+
+        fov =
+            Math.max(
+                35,
+                Math.min(
+                    100,
+                    fov
+                )
+            );
+
+    },
+    {
+        passive: false
+    }
+);
+
+
+/*
+==============================================================
+TOUCH / ТЕЛЕФОН
+==============================================================
+*/
+
+renderer.domElement.addEventListener(
+    "touchstart",
+    event => {
+
+        if (
+            event.touches.length === 1
+        ) {
+
+            dragging = true;
+
+            lastX =
+                event.touches[0]
+                    .clientX;
+
+            lastY =
+                event.touches[0]
+                    .clientY;
+
+        }
+
+
+        if (
+            event.touches.length === 2
+        ) {
+
+            pinchDistance =
+                getPinchDistance(
+                    event.touches
+                );
+
+        }
+
+    },
+    {
+        passive: false
+    }
+);
+
+
+renderer.domElement.addEventListener(
+    "touchmove",
+    event => {
+
+        event.preventDefault();
+
+
+        /*
+         * Один палец:
+         * вращение.
+         */
+
+        if (
+            event.touches.length === 1
+        ) {
+
+            const x =
+                event.touches[0]
+                    .clientX;
+
+            const y =
+                event.touches[0]
+                    .clientY;
+
+
+            const dx =
+                x - lastX;
+
+            const dy =
+                y - lastY;
+
+
+            lastX = x;
+            lastY = y;
+
+
+            targetLongitude -=
+                dx * 0.12;
+
+            targetLatitude -=
+                dy * 0.12;
+
+
+            targetLatitude =
+                Math.max(
+                    -89,
+                    Math.min(
+                        89,
+                        targetLatitude
+                    )
+                );
+
+        }
+
+
+        /*
+         * Два пальца:
+         * zoom.
+         */
+
+        if (
+            event.touches.length === 2
+        ) {
+
+            const distance =
+                getPinchDistance(
+                    event.touches
+                );
+
+
+            if (
+                pinchDistance !== null
+            ) {
+
+                const delta =
+                    distance -
+                    pinchDistance;
+
+
+                fov -=
+                    delta * 0.08;
+
+
+                fov =
+                    Math.max(
+                        35,
+                        Math.min(
+                            100,
+                            fov
+                        )
+                    );
+
+            }
+
+
+            pinchDistance =
+                distance;
+
+        }
+
+    },
+    {
+        passive: false
+    }
+);
+
+
+renderer.domElement.addEventListener(
+    "touchend",
+    event => {
+
+        if (
+            event.touches.length < 2
+        ) {
+
+            pinchDistance =
+                null;
+
+        }
+
+
+        if (
+            event.touches.length === 0
+        ) {
+
+            dragging = false;
+
+        }
+
+    }
+);
+
+
+function getPinchDistance(
+    touches
+) {
+
+    const dx =
+        touches[0].clientX -
+        touches[1].clientX;
+
+
+    const dy =
+        touches[0].clientY -
+        touches[1].clientY;
+
+
+    return Math.sqrt(
+        dx * dx +
+        dy * dy
+    );
+
+}
+
+
+/*
+==============================================================
+КЛАВИАТУРА
+==============================================================
+*/
+
+window.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key ===
+            "ArrowRight"
+        ) {
+
+            showPanorama(
+                currentIndex + 1
+            );
+
+        }
+
+
+        if (
+            event.key ===
+            "ArrowLeft"
+        ) {
+
+            showPanorama(
+                currentIndex - 1
+            );
+
+        }
+
+
+        if (
+            event.key === "+"
+            ||
+            event.key === "="
+        ) {
+
+            fov =
+                Math.max(
+                    35,
+                    fov - 5
+                );
+
+        }
+
+
+        if (
+            event.key === "-"
+        ) {
+
+            fov =
+                Math.min(
+                    100,
+                    fov + 5
+                );
+
+        }
+
+
+        if (
+            event.key === "f"
+        ) {
+
+            document
+                .getElementById(
+                    "fullscreen"
+                )
+                .click();
+
+        }
+
+    }
+);
+
+
+/*
+==============================================================
+ПЛАВНАЯ КАМЕРА
+==============================================================
+*/
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    longitude +=
+        (
+            targetLongitude -
+            longitude
+        ) * 0.12;
+
+
+    latitude +=
+        (
+            targetLatitude -
+            latitude
+        ) * 0.12;
+
+
+    camera.fov +=
+        (
+            fov -
+            camera.fov
+        ) * 0.15;
+
+
+    camera.updateProjectionMatrix();
+
+
+    const phi =
+        THREE.MathUtils.degToRad(
+            90 - latitude
+        );
+
+
+    const theta =
+        THREE.MathUtils.degToRad(
+            longitude
+        );
+
+
+    const x =
+        100 *
+        Math.sin(phi) *
+        Math.cos(theta);
+
+
+    const y =
+        100 *
+        Math.cos(phi);
+
+
+    const z =
+        100 *
+        Math.sin(phi) *
+        Math.sin(theta);
+
+
+    camera.lookAt(
+        x,
+        y,
+        z
+    );
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+}
+
+
+/*
+==============================================================
+РАЗМЕР ОКНА
+==============================================================
+*/
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+    }
+);
+
+
+animate();
+
+</script>
+
+</body>
+</html>
